@@ -7,9 +7,119 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Human Evaluation Page</h1>
-  <p>If you can see this page, GitHub Pages is working.</p>
+  <header class="topbar">
+    <div>
+      <h1>Human Evaluation</h1>
+      <p class="sub">Query · Evidence · Annotation workflow for type1–4 evaluation</p>
+    </div>
+    <div class="topbar-controls">
+      <label>
+        User
+        <select id="userSelect"></select>
+      </label>
+      <label>
+        Query Type
+        <select id="queryTypeSelect"></select>
+      </label>
+    </div>
+  </header>
 
-  <script src="script.js"></script>
+  <main class="layout">
+    <section class="panel panel-query">
+      <div class="panel-header sticky"><h2>Query</h2></div>
+      <div id="queryPanel" class="panel-body"></div>
+    </section>
+
+    <section class="panel panel-evidence">
+      <div class="panel-header sticky evidence-header">
+        <h2>Evidence</h2>
+        <div class="evidence-controls">
+          <input id="sessionSearch" type="search" placeholder="Search sessions / turns" />
+          <label><input type="checkbox" id="toggleEvents" checked /> Events</label>
+          <label><input type="checkbox" id="toggleTrajectory" checked /> Trajectory</label>
+          <label><input type="checkbox" id="toggleFiller" checked /> Filler</label>
+        </div>
+      </div>
+      <div class="panel-body evidence-body">
+        <div class="evidence-side">
+          <div class="card compact">
+            <h3>Events</h3>
+            <div id="eventsList" class="stack"></div>
+          </div>
+          <div class="card compact">
+            <h3>Trajectory</h3>
+            <div id="trajectoryList" class="stack"></div>
+          </div>
+        </div>
+        <div class="sessions-side">
+          <div id="sessionsList" class="stack"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel-annotation">
+      <div class="panel-header sticky">
+        <h2>Annotation</h2>
+      </div>
+
+      <div id="annotationPanel" class="panel-body">
+        <!-- Common -->
+        <div class="block">
+          <h3>Common</h3>
+
+          <label>
+            Implicitness:
+            <select id="implicitness">
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+          <br>
+
+          <label>
+            Multi-hop required:
+            <select id="multihop">
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+        </div>
+
+        <hr>
+
+        <!-- Type-specific -->
+        <div class="block">
+          <h3>Type-specific</h3>
+          <div id="typeSpecific"></div>
+        </div>
+
+        <hr>
+
+        <!-- Comment -->
+        <div class="block">
+          <h3>Comment</h3>
+          <textarea id="comment" rows="4" style="width:100%;"></textarea>
+        </div>
+
+        <hr>
+
+        <!-- Buttons -->
+        <div class="annotation-controls">
+          <button id="saveBtn">Save</button>
+          <button id="downloadBtn">Download</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <template id="turnTemplate">
+    <div class="turn">
+      <div class="turn-role"></div>
+      <div class="turn-content"></div>
+    </div>
+  </template>
+
+  <script src="script.js" defer></script>
+  <button id="scrollTopBtn" class="scroll-top-btn">Top</button>
 </body>
 </html>
