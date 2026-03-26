@@ -9,6 +9,7 @@ let queryBox, eventBox, trajBox, sessionBox;
 let saveBtn, downloadBtn;
 let implicitSlider, confidenceInput, rationaleInput;
 let expandedFillers = new Set();
+let selectedSessionIndex = null;
 
 async function init() {
   console.log("init start");
@@ -59,8 +60,7 @@ async function init() {
     renderSessions();
     });
 
-  ["toggleEvents", "toggleTrajectory", "toggleFiller", "expandFillerTurns"]
-  .forEach(id => {
+  ["toggleFiller", "expandFillerTurns"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", () => {
       renderSessions();
     });
@@ -75,11 +75,13 @@ async function init() {
   // event binding
   userSelect?.addEventListener("change", () => {
     currentUser = data[userSelect.value];
+    selectedSessionIndex = null;
     render();
   });
 
   typeSelect?.addEventListener("change", () => {
     currentType = typeSelect.value;
+    selectedSessionIndex = null;
     render();
   });
 
@@ -271,6 +273,26 @@ function scrollToSession(type, idx) {
   setTimeout(() => el.classList.remove("highlight"), 1500);
 }
 
+function selectSessionOnly(type, idx) {
+  const sessions = normalizeSessions(currentUser);
+
+  // Find the idx-th session of given kind within the flattened session list.
+  let count = -1;
+  let targetIndex = -1;
+  sessions.forEach((s, i) => {
+    if (s.kind === type) {
+      count++;
+      if (count === idx) targetIndex = i;
+    }
+  });
+
+  if (targetIndex === -1) return;
+
+  // Toggle: click again to clear selection.
+  selectedSessionIndex = selectedSessionIndex === targetIndex ? null : targetIndex;
+  renderSessions();
+}
+
 function renderEvents() {
   eventBox.innerHTML = "";
 
@@ -286,7 +308,7 @@ function renderEvents() {
   document.querySelectorAll(".list-item.clickable").forEach(el => {
     el.addEventListener("click", () => {
       const idx = Number(el.dataset.eventIndex);
-      scrollToSession("event", idx);
+      selectSessionOnly("event", idx);
     });
   });
 }
@@ -305,7 +327,7 @@ function renderTrajectory() {
   document.querySelectorAll(".list-item.clickable").forEach(el => {
     el.addEventListener("click", () => {
       const idx = Number(el.dataset.trajIndex);
-      scrollToSession("trajectory", idx);
+      selectSessionOnly("trajectory", idx);
     });
   });
 }
@@ -337,30 +359,37 @@ function renderSessions() {
 
   const sessions = normalizeSessions(currentUser);
 
-  const showEvents = document.getElementById("toggleEvents")?.checked;
-  const showTraj = document.getElementById("toggleTrajectory")?.checked;
   const showFiller = document.getElementById("toggleFiller")?.checked;
   const expandFiller = document.getElementById("expandFillerTurns")?.checked;
 
   const query = document.getElementById("sessionSearch")?.value?.toLowerCase() || "";
 
-  const filtered = sessions.filter(s => {
-    const type = s.kind || s.type;
+  let filtered = sessions
+    .map((s, idx) => ({ s, idx }))
+    .filter(({ s }) => {
+      const type = s.kind || s.type;
 
-    // 🔹 type filter
-    if (type === "event" && !showEvents) return false;
-    if (type === "trajectory" && !showTraj) return false;
-    if (type === "filler" && !showFiller) return false;
+      // Only filler is toggleable now.
+      if (type === "filler" && !showFiller) return false;
 
-    // 🔹 search filter
-    if (!query) return true;
+      // 🔹 search filter
+      if (!query) return true;
 
-    const text = JSON.stringify(s).toLowerCase(); // 🔥 전체 내용 검색
+      const text = JSON.stringify(s).toLowerCase(); // 🔥 전체 내용 검색
 
-    return text.includes(query);
-  });
+      return text.includes(query);
+    });
 
-  filtered.forEach((s, i) => {
+  // Default: show nothing until a session is explicitly selected,
+  // except optional filler browsing via toggle.
+  if (selectedSessionIndex === null) {
+    if (!showFiller) return;
+    filtered = filtered.filter(({ s }) => (s.kind || s.type) === "filler");
+  } else {
+    filtered = filtered.filter(({ idx }) => idx === selectedSessionIndex);
+  }
+
+  filtered.forEach(({ s, idx }) => {
     const type = s.kind || s.type;
     const isFiller = type === "filler";
 
@@ -373,8 +402,8 @@ function renderSessions() {
       s.turns ||
       [];
 
-    const sessionId = `session-${i}`;
-    const isExpanded = expandedFillers.has(sessionId);
+    const sessionId = `session-${idx}`;
+    const isExpanded = isFiller && expandedFillers.has(sessionId);
 
     if (isFiller && !isExpanded) {
       content = `
@@ -383,7 +412,7 @@ function renderSessions() {
           <button class="expand-btn" data-id="${sessionId}">Expand</button>
         </div>
       `;
-    } else {
+    } else if (isFiller && isExpanded) {
       content = `
         <div class="filler-expanded">
           ${turns.map(t => `
@@ -395,12 +424,23 @@ function renderSessions() {
           <button class="collapse-btn" data-id="${sessionId}">Collapse</button>
         </div>
       `;
+    } else {
+      content = `
+        <div class="turns">
+          ${turns.map(t => `
+            <div class="turn">
+              <div class="role">${t.role}:</div>
+              <div class="content">${highlight(t.content, query)}</div>
+            </div>
+          `).join("")}
+        </div>
+      `;
     }
 
     sessionBox.innerHTML += `
       <div id="${sessionId}" class="session-card ${isFiller ? "filler" : "evidence"}">
         <div class="session-meta">
-          <span class="session-title">Session ${i}</span>
+          <span class="session-title">Session ${idx}</span>
           <span class="session-subtitle">${type}</span>
         </div>
         <div class="session-body">${content}</div>
@@ -428,7 +468,7 @@ function renderSessions() {
 function highlight(text, query) {
   if (!query) return text;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${query})`, "gi");
+  const regex = new RegExp(`(${escaped})`, "gi");
   return text.replace(regex, `<mark>$1</mark>`);
 }
 
