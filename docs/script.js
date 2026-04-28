@@ -288,16 +288,16 @@ function renderTypeSpecific() {
   const map = {
     type1: [
       yn("t1_topic",    "Is the query grounded in the topic?"),
-      yn("t1_newrec",   "Does answering well require recommending something new based on past events?"),
-      yn("t1_natural",  "Is it a natural and realistic query?"),
+      yn("t1_newrec",   "Does the query require recommending something new based on past events for a personalized response?"),
+      yn("t1_natural",  "Is the query natural and realistic?"),
     ],
     type2: [
       yn("t2_mixed",    "Is the evidence naturally and well mixed from multiple sessions?"),
-      yn("t2_natural",  "Is it a natural and realistic query?"),
+      yn("t2_natural",  "Is the query natural and realistic?"),
     ],
     type3: [
-      yn("t3_progress", "Does answering well require understanding the user's progression along the axes?"),
-      yn("t3_natural",  "Is it a natural and realistic query?"),
+      yn("t3_progress", "Does the query require understanding the user's progression along the axes for a personalized response?"),
+      yn("t3_natural",  "Is the query natural and realistic?"),
     ],
     type4: [
       yn("t4_against",  "Does the user's decision go against their established trajectory?"),
