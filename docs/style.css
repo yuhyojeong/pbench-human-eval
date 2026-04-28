@@ -297,6 +297,63 @@
     border: 1px solid var(--line);
   }
 
+  .item-index {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-right: 4px;
+  }
+
+  .evidence-highlight {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .meta-list {
+    margin: 6px 0 0;
+    padding-left: 20px;
+    line-height: 1.6;
+  }
+
+  .response-section {
+    margin-top: 12px;
+  }
+
+  .response-label {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .response-block {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+
+  .annot-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .annot-row select {
+    min-width: 70px;
+  }
+
   mark {
     display: inline;
     line-height: inherit;

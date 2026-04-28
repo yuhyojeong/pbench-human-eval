@@ -3,76 +3,31 @@ let currentUser = null;
 let currentType = "type1";
 let annotations = JSON.parse(localStorage.getItem("annotations") || "[]");
 
-// DOM refs
 let userSelect, typeSelect;
 let queryBox, eventBox, trajBox, sessionBox;
 let saveBtn, downloadBtn;
-let implicitSlider, confidenceInput, rationaleInput;
 let expandedFillers = new Set();
 let selectedSessionIndex = null;
 
 async function init() {
-  console.log("init start");
-
-  // DOM query
-  userSelect = document.getElementById("userSelect");
-  typeSelect = document.getElementById("queryTypeSelect");
-
-  queryBox = document.getElementById("queryPanel");
-  eventBox = document.getElementById("eventsList");
-  trajBox = document.getElementById("trajectoryList");
-  sessionBox = document.getElementById("sessionsList");
-
-  saveBtn = document.getElementById("saveBtn");
+  userSelect  = document.getElementById("userSelect");
+  typeSelect  = document.getElementById("queryTypeSelect");
+  queryBox    = document.getElementById("queryPanel");
+  eventBox    = document.getElementById("eventsList");
+  trajBox     = document.getElementById("trajectoryList");
+  sessionBox  = document.getElementById("sessionsList");
+  saveBtn     = document.getElementById("saveBtn");
   downloadBtn = document.getElementById("downloadBtn");
 
-  implicitSlider = document.getElementById("implicitness");
-  confidenceInput = document.getElementById("confidence");
-  rationaleInput = document.getElementById("rationale");
-
-  console.log({
-    userSelect,
-    typeSelect,
-    saveBtn,
-    downloadBtn
-  });
-
   const scrollBtn = document.getElementById("scrollTopBtn");
-
   window.addEventListener("scroll", () => {
-    if (window.scrollY > 200) {
-      scrollBtn.classList.add("show");
-    } else {
-      scrollBtn.classList.remove("show");
-    }
+    scrollBtn.classList.toggle("show", window.scrollY > 200);
   });
+  scrollBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
-  scrollBtn.addEventListener("click", () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  });
+  document.getElementById("sessionSearch")?.addEventListener("input", renderSessions);
+  document.getElementById("toggleFiller")?.addEventListener("change", renderSessions);
 
-  const searchInput = document.getElementById("sessionSearch");
-
-    searchInput?.addEventListener("input", () => {
-    renderSessions();
-    });
-
-  ["toggleFiller", "expandFillerTurns"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", () => {
-      renderSessions();
-    });
-  });
-
-  ["chkEvent", "chkTraj", "chkFiller"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", () => {
-      renderSessions();
-    });
-  });
-
-  // event binding
   userSelect?.addEventListener("change", () => {
     currentUser = data[userSelect.value];
     selectedSessionIndex = null;
@@ -93,9 +48,8 @@ async function init() {
     const raw = await res.json();
     data = raw.records ?? raw;
 
-    const types = ["type1", "type2", "type3", "type4"];
     typeSelect.innerHTML = "";
-    types.forEach(t => {
+    ["type1", "type2", "type3", "type4"].forEach(t => {
       const opt = document.createElement("option");
       opt.value = t;
       opt.textContent = t;
@@ -106,7 +60,7 @@ async function init() {
     data.forEach((d, i) => {
       const opt = document.createElement("option");
       opt.value = i;
-      opt.textContent = `${i} - ${d.persona}`;
+      opt.textContent = `${i} — ${d.persona}`;
       userSelect.appendChild(opt);
     });
 
@@ -117,475 +71,314 @@ async function init() {
   }
 }
 
-function renderTypeSpecific() {
-  const box = document.getElementById("typeSpecific");
-  if (!box) return;
-
-  box.innerHTML = "";
-
-  if (currentType === "type1") {
-    box.innerHTML = `
-      <label>Refers to past event?
-        <select id="t1_ref"><option>yes</option><option>no</option></select>
-      </label><br>
-
-      <label>Event knowledge required?
-        <select id="t1_need"><option>yes</option><option>no</option></select>
-      </label>
-    `;
-  }
-
-  if (currentType === "type2") {
-    box.innerHTML = `
-      <label>Looks unrelated to trajectory?
-        <select id="t2_unrelated"><option>yes</option><option>no</option></select>
-      </label><br>
-
-      <label>Trajectory tracking required?
-        <select id="t2_need"><option>yes</option><option>no</option></select>
-      </label>
-    `;
-  }
-
-  if (currentType === "type3") {
-    box.innerHTML = `
-      <label>Misremembering?
-        <select id="t3_mis"><option>yes</option><option>no</option></select>
-      </label><br>
-
-      <label>Target does NOT exist?
-        <select id="t3_nonexist"><option>yes</option><option>no</option></select>
-      </label>
-    `;
-  }
-
-  if (currentType === "type4") {
-    box.innerHTML = `
-      <label>Mixing multiple events?
-        <select id="t4_mix"><option>yes</option><option>no</option></select>
-      </label>
-    `;
-  }
-
-  if (currentType === "filler") {
-    box.innerHTML = `
-      <label>Unrelated to events?
-        <select id="filler_unrelated"><option>yes</option><option>no</option></select>
-      </label>
-    `;
-  }
-}
-
 function render() {
   if (!currentUser) return;
   renderQuery();
   renderEvents();
   renderTrajectory();
   renderSessions();
-  renderTypeSpecific(); // 🔥 추가
+  renderTypeSpecific();
   loadAnnotation();
 }
 
+// ── Query panel ────────────────────────────────────────────────────────────
+
 function renderQuery() {
   const qObj = currentUser.queries?.find(q => q.type === currentType);
-  if (!qObj) {
-    queryBox.innerHTML = "";
-    return;
+  if (!qObj) { queryBox.innerHTML = ""; return; }
+
+  let meta = "";
+
+  if (currentType === "type1") {
+    const events = currentUser.events ?? [];
+    meta += `
+      <div class="query-meta">
+        <div><b>Topic:</b> ${esc(currentUser.topic ?? "—")}</div>
+      </div>
+      <div class="query-meta">
+        <div><b>Events</b></div>
+        <ol class="meta-list">
+          ${events.map(e => `<li>${esc(e.text)}</li>`).join("")}
+        </ol>
+      </div>`;
   }
 
-  let extra = "";
+  if (currentType === "type2") {
+    const indices = qObj.evidenceEventIndices ?? [];
+    const evts    = qObj.evidenceEvents ?? [];
+    meta += `
+      <div class="query-meta">
+        <div><b>Evidence events</b></div>
+        <ol class="meta-list">
+          ${evts.map((e, i) => `<li><span class="item-index">#${indices[i]}</span> ${esc(e)}</li>`).join("")}
+        </ol>
+      </div>`;
+  }
 
-  // 🔹 type3
   if (currentType === "type3") {
-    const m = qObj.mismatch || {};
-
-    extra += `
+    const axes = currentUser.axes ?? [];
+    const traj = currentUser.trajectory ?? [];
+    meta += `
       <div class="query-meta">
-        <div><b>referenceEventIndex:</b> ${qObj.referenceEventIndex ?? "-"}</div>
-
-        <div><b>rewrittenEvent:</b></div>
-        <div class="meta-block">${qObj.rewrittenEvent ?? "-"}</div>
-
-        <div><b>mismatch:</b></div>
-        <div class="meta-block">
-          <div>cue: "${m.inputCue ?? "-"}" → "${m.outputCue ?? "-"}"</div>
-          <div>item: "${m.inputItem ?? "-"}" → "${m.outputItem ?? "-"}"</div>
-        </div>
+        <div><b>Axes</b></div>
+        <ul class="meta-list">
+          ${axes.map(a => `<li>${esc(a)}</li>`).join("")}
+        </ul>
       </div>
-    `;
+      <div class="query-meta">
+        <div><b>Trajectory</b></div>
+        <ol class="meta-list">
+          ${traj.map(t => `<li>${esc(t.text)}</li>`).join("")}
+        </ol>
+      </div>`;
   }
 
-  // 🔹 type4
   if (currentType === "type4") {
-    const indices = qObj.mixedEventIndices ?? [];
-
-    extra += `
+    const indices = qObj.evidenceTrajectoryIndices ?? [];
+    const trjs    = qObj.evidenceTrajectory ?? [];
+    meta += `
       <div class="query-meta">
-        <div><b>mixedEventIndices:</b> ${indices.join(", ") || "-"}</div>
-      </div>
-    `;
+        <div><b>Evidence trajectory</b></div>
+        <ol class="meta-list">
+          ${trjs.map((t, i) => `<li><span class="item-index">#${indices[i]}</span> ${esc(t)}</li>`).join("")}
+        </ol>
+      </div>`;
   }
 
-  // 🔥 NEW: topic + axes (항상 표시)
-  extra += `
-    <div class="query-meta">
-      <div><b>Topic:</b> ${currentUser.topic ?? "-"}</div>
-      <div><b>Axes:</b> ${(currentUser.axes ?? []).join(", ")}</div>
-    </div>
-  `;
+  const r = qObj.responses ?? {};
+  meta += `
+    <div class="query-meta response-section">
+      <div class="response-label">Personalized response</div>
+      <div class="response-block">${esc(r.personalized ?? "—")}</div>
+      <div class="response-label" style="margin-top:8px;">General response</div>
+      <div class="response-block">${esc(r.general ?? "—")}</div>
+    </div>`;
 
-  queryBox.innerHTML = `
-    <div class="query-text">
-      ${qObj.text ?? ""}
-    </div>
-    ${extra}
-  `;
+  queryBox.innerHTML = `<div class="query-text">${esc(qObj.text ?? "")}</div>${meta}`;
 }
 
-function scrollToSession(type, idx) {
-  const sessions = normalizeSessions(currentUser);
-
-  // 해당 type 중 idx번째 찾기
-  let count = -1;
-  let targetIndex = -1;
-
-  sessions.forEach((s, i) => {
-    if (s.kind === type) {
-      count++;
-      if (count === idx) {
-        targetIndex = i;
-      }
-    }
-  });
-
-  if (targetIndex === -1) return;
-
-  const el = document.getElementById(`session-${targetIndex}`);
-  if (!el) return;
-
-  el.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-
-  // 🔥 하이라이트 효과
-  el.classList.add("highlight");
-  setTimeout(() => el.classList.remove("highlight"), 1500);
-}
-
-function selectSessionOnly(type, idx) {
-  const sessions = normalizeSessions(currentUser);
-
-  // Find the idx-th session of given kind within the flattened session list.
-  let count = -1;
-  let targetIndex = -1;
-  sessions.forEach((s, i) => {
-    if (s.kind === type) {
-      count++;
-      if (count === idx) targetIndex = i;
-    }
-  });
-
-  if (targetIndex === -1) return;
-
-  // Toggle: click again to clear selection.
-  selectedSessionIndex = selectedSessionIndex === targetIndex ? null : targetIndex;
-  renderSessions();
-}
+// ── Evidence side panel ────────────────────────────────────────────────────
 
 function renderEvents() {
   eventBox.innerHTML = "";
+  if (!["type1", "type2"].includes(currentType)) return;
 
-  currentUser.events?.forEach((e, i) => {
-    eventBox.innerHTML += `
-      <div class="list-item clickable" data-event-index="${i}">
-        ${e}
-      </div>
-    `;
-  });
+  const qObj = currentUser.queries?.find(q => q.type === currentType);
+  const evidenceSet = new Set(qObj?.evidenceEventIndices ?? []);
 
-  // 🔥 클릭 이벤트 바인딩
-  document.querySelectorAll(".list-item.clickable").forEach(el => {
-    el.addEventListener("click", () => {
-      const idx = Number(el.dataset.eventIndex);
-      selectSessionOnly("event", idx);
+  (currentUser.events ?? []).forEach((e, i) => {
+    const isEvid = evidenceSet.has(i);
+    const div = document.createElement("div");
+    div.className = `list-item clickable${isEvid ? " evidence-highlight" : ""}`;
+    div.dataset.sessionIndex = e.sessionIndex;
+    div.innerHTML = `<span class="item-index">#${i}</span> ${esc(e.text)}`;
+    div.addEventListener("click", () => {
+      const idx = Number(div.dataset.sessionIndex);
+      selectedSessionIndex = selectedSessionIndex === idx ? null : idx;
+      renderSessions();
     });
+    eventBox.appendChild(div);
   });
 }
 
 function renderTrajectory() {
   trajBox.innerHTML = "";
+  if (!["type3", "type4"].includes(currentType)) return;
 
-  currentUser.trajectory?.forEach((t, i) => {
-    trajBox.innerHTML += `
-      <div class="list-item clickable" data-traj-index="${i}">
-        ${t}
-      </div>
-    `;
-  });
+  const qObj = currentUser.queries?.find(q => q.type === currentType);
+  const evidenceSet = new Set(qObj?.evidenceTrajectoryIndices ?? []);
 
-  document.querySelectorAll(".list-item.clickable").forEach(el => {
-    el.addEventListener("click", () => {
-      const idx = Number(el.dataset.trajIndex);
-      selectSessionOnly("trajectory", idx);
+  (currentUser.trajectory ?? []).forEach((t, i) => {
+    const isEvid = evidenceSet.has(i);
+    const div = document.createElement("div");
+    div.className = `list-item clickable${isEvid ? " evidence-highlight" : ""}`;
+    div.dataset.sessionIndex = t.sessionIndex;
+    div.innerHTML = `<span class="item-index">#${i}</span> ${esc(t.text)}`;
+    div.addEventListener("click", () => {
+      const idx = Number(div.dataset.sessionIndex);
+      selectedSessionIndex = selectedSessionIndex === idx ? null : idx;
+      renderSessions();
     });
+    trajBox.appendChild(div);
   });
 }
 
-function getSessionFilter() {
-  return {
-    event: document.getElementById("chkEvent")?.checked,
-    traj: document.getElementById("chkTraj")?.checked,
-    filler: document.getElementById("chkFiller")?.checked
-  };
-}
-
-function extractSessionText(session) {
-  if (session.text) return session.text;
-  if (session.title) return session.title;
-
-  const turns =
-    session.event_turns ||
-    session.trajectory_turns ||
-    session.filler_turns ||
-    session.turns ||
-    [];
-
-  return turns.map(t => `${t.role}: ${t.content}`).join("<br>");
-}
+// ── Sessions panel ─────────────────────────────────────────────────────────
 
 function renderSessions() {
   sessionBox.innerHTML = "";
-
-  const sessions = normalizeSessions(currentUser);
-
+  const sessions  = currentUser.sessions ?? [];
   const showFiller = document.getElementById("toggleFiller")?.checked;
-  const expandFiller = document.getElementById("expandFillerTurns")?.checked;
+  const query      = document.getElementById("sessionSearch")?.value?.toLowerCase() || "";
 
-  const query = document.getElementById("sessionSearch")?.value?.toLowerCase() || "";
-
-  let filtered = sessions
-    .map((s, idx) => ({ s, idx }))
-    .filter(({ s }) => {
-      const type = s.kind || s.type;
-
-      // Only filler is toggleable now.
-      if (type === "filler" && !showFiller) return false;
-
-      // 🔹 search filter
-      if (!query) return true;
-
-      const text = JSON.stringify(s).toLowerCase(); // 🔥 전체 내용 검색
-
-      return text.includes(query);
-    });
-
-  // Default: show nothing until a session is explicitly selected,
-  // except optional filler browsing via toggle.
-  if (selectedSessionIndex === null) {
-    if (!showFiller) return;
-    filtered = filtered.filter(({ s }) => (s.kind || s.type) === "filler");
-  } else {
-    filtered = filtered.filter(({ idx }) => idx === selectedSessionIndex);
+  if (selectedSessionIndex !== null) {
+    const s = sessions[selectedSessionIndex];
+    if (s) renderOneSession(s, selectedSessionIndex, query);
+    return;
   }
 
-  filtered.forEach(({ s, idx }) => {
-    const type = s.kind || s.type;
-    const isFiller = type === "filler";
+  if (showFiller) {
+    sessions.forEach((s, idx) => {
+      if (s.type === "filler") renderOneSession(s, idx, query);
+    });
+  }
+}
 
-    let content = "";
+function renderOneSession(s, idx, query = "") {
+  const isFiller   = s.type === "filler";
+  const sessionId  = `session-${idx}`;
+  const isExpanded = expandedFillers.has(sessionId);
+  const turns      = s.turns ?? [];
 
-    const turns =
-      s.event_turns ||
-      s.trajectory_turns ||
-      s.filler_turns ||
-      s.turns ||
-      [];
+  let content = "";
 
-    const sessionId = `session-${idx}`;
-    const isExpanded = isFiller && expandedFillers.has(sessionId);
+  if (isFiller && !isExpanded) {
+    content = `
+      <div class="filler-summary">
+        <div class="summary-only">${highlight(s.timestamp ?? "filler session", query)}</div>
+        <button class="expand-btn" data-id="${sessionId}">Expand</button>
+      </div>`;
+  } else {
+    content = `
+      <div class="turns">
+        ${turns.map(t => `
+          <div class="turn">
+            <div class="turn-role">${esc(t.role)}</div>
+            <div class="turn-content">${highlight(esc(t.content), query)}</div>
+          </div>`).join("")}
+        ${isFiller ? `<button class="collapse-btn" data-id="${sessionId}">Collapse</button>` : ""}
+      </div>`;
+  }
 
-    if (isFiller && !isExpanded) {
-      content = `
-        <div class="filler-summary" data-id="${sessionId}">
-          <div class="summary-only">${highlight(s.topic ?? "filler session", query)}</div>
-          <button class="expand-btn" data-id="${sessionId}">Expand</button>
-        </div>
-      `;
-    } else if (isFiller && isExpanded) {
-      content = `
-        <div class="filler-expanded">
-          ${turns.map(t => `
-            <div class="turn">
-              <div class="role">${t.role}:</div>
-              <div class="content">${highlight(t.content, query)}</div>
-            </div>
-          `).join("")}
-          <button class="collapse-btn" data-id="${sessionId}">Collapse</button>
-        </div>
-      `;
-    } else {
-      content = `
-        <div class="turns">
-          ${turns.map(t => `
-            <div class="turn">
-              <div class="role">${t.role}:</div>
-              <div class="content">${highlight(t.content, query)}</div>
-            </div>
-          `).join("")}
-        </div>
-      `;
-    }
-
-    sessionBox.innerHTML += `
-      <div id="${sessionId}" class="session-card ${isFiller ? "filler" : "evidence"}">
-        <div class="session-meta">
+  sessionBox.innerHTML += `
+    <div id="${sessionId}" class="session-card" data-kind="${s.type}">
+      <div class="session-meta">
+        <div>
           <span class="session-title">Session ${idx}</span>
-          <span class="session-subtitle">${type}</span>
+          <div class="session-subtitle">${s.type} · ${s.timestamp ?? ""}</div>
         </div>
-        <div class="session-body">${content}</div>
       </div>
-    `;
-  });
+      <div class="session-body">${content}</div>
+    </div>`;
 
   setTimeout(() => {
     document.querySelectorAll(".expand-btn").forEach(btn => {
-      btn.onclick = () => {
-        expandedFillers.add(btn.dataset.id);
-        renderSessions();
-      };
+      btn.onclick = () => { expandedFillers.add(btn.dataset.id); renderSessions(); };
     });
-
     document.querySelectorAll(".collapse-btn").forEach(btn => {
-      btn.onclick = () => {
-        expandedFillers.delete(btn.dataset.id);
-        renderSessions();
-      };
+      btn.onclick = () => { expandedFillers.delete(btn.dataset.id); renderSessions(); };
     });
   }, 0);
 }
 
-function highlight(text, query) {
-  if (!query) return text;
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escaped})`, "gi");
-  return text.replace(regex, `<mark>$1</mark>`);
-}
+// ── Annotation panel ───────────────────────────────────────────────────────
 
-function getChecked(className) {
-  return Array.from(document.querySelectorAll(`.${className}:checked`)).map(el => el.value);
+function renderTypeSpecific() {
+  const box = document.getElementById("typeSpecific");
+  if (!box) return;
+
+  const yn = (id, label) => `
+    <label class="annot-row">${label}
+      <select id="${id}">
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </label>`;
+
+  const map = {
+    type1: [
+      yn("t1_topic",    "Is the query grounded in the topic?"),
+      yn("t1_newrec",   "Does answering well require recommending something new based on past events?"),
+      yn("t1_natural",  "Is it a natural and realistic query?"),
+    ],
+    type2: [
+      yn("t2_mixed",    "Is the evidence naturally and well mixed from multiple sessions?"),
+      yn("t2_natural",  "Is it a natural and realistic query?"),
+    ],
+    type3: [
+      yn("t3_progress", "Does answering well require understanding the user's progression along the axes?"),
+      yn("t3_natural",  "Is it a natural and realistic query?"),
+    ],
+    type4: [
+      yn("t4_against",  "Does the user's decision go against their established trajectory?"),
+      yn("t4_misalign", "Does the query naturally misalign with the evidence?"),
+    ],
+  };
+
+  box.innerHTML = (map[currentType] ?? []).join("<br>");
 }
 
 function getTypeSpecificValues() {
-  if (currentType === "type1") {
-    return {
-      ref: document.getElementById("t1_ref")?.value,
-      need: document.getElementById("t1_need")?.value
-    };
-  }
+  const ids = {
+    type1: ["t1_topic", "t1_newrec", "t1_natural"],
+    type2: ["t2_mixed", "t2_natural"],
+    type3: ["t3_progress", "t3_natural"],
+    type4: ["t4_against", "t4_misalign"],
+  }[currentType] ?? [];
 
-  if (currentType === "type2") {
-    return {
-      unrelated: document.getElementById("t2_unrelated")?.value,
-      need: document.getElementById("t2_need")?.value
-    };
-  }
-
-  if (currentType === "type3") {
-    return {
-      mis: document.getElementById("t3_mis")?.value,
-      nonexist: document.getElementById("t3_nonexist")?.value
-    };
-  }
-
-  if (currentType === "type4") {
-    return {
-      mix: document.getElementById("t4_mix")?.value
-    };
-  }
-
-  if (currentType === "filler") {
-    return {
-      unrelated: document.getElementById("filler_unrelated")?.value
-    };
-  }
-
-  return {};
+  return Object.fromEntries(ids.map(id => [id, document.getElementById(id)?.value]));
 }
+
+// ── Save / load ────────────────────────────────────────────────────────────
 
 function saveAnnotation() {
   const record = {
-    user_index: Number(userSelect.value),
-    user_id: currentUser.user_id,
-    query_type: currentType,
-    query: currentUser.queries?.find(q => q.type === currentType)?.text,
-
-    persona: currentUser.persona,
-    topic: currentUser.topic,
-    axes: currentUser.axes,
-
-    implicitness: document.getElementById("implicitness")?.value,
-    multihop: document.getElementById("multihop")?.value,
+    user_index:    Number(userSelect.value),
+    user_id:       currentUser.user_id,
+    query_type:    currentType,
+    query:         currentUser.queries?.find(q => q.type === currentType)?.text,
+    persona:       currentUser.persona,
+    topic:         currentUser.topic,
+    axes:          currentUser.axes,
     type_specific: getTypeSpecificValues(),
-    comment: document.getElementById("comment")?.value,
-
-    timestamp: new Date().toISOString()
+    comment:       document.getElementById("comment")?.value,
+    timestamp:     new Date().toISOString(),
   };
 
   annotations = annotations.filter(
-    a =>
-      !(
-        a.user_index === record.user_index &&
-        a.query_type === record.query_type
-      )
+    a => !(a.user_index === record.user_index && a.query_type === record.query_type)
   );
-
   annotations.push(record);
-
   localStorage.setItem("annotations", JSON.stringify(annotations));
-
-  console.log("Saved:", record); // 🔥 디버깅용
   alert("Saved!");
 }
 
 function loadAnnotation() {
   const ann = annotations.find(
-    a =>
-      a.user_index === Number(userSelect.value) &&
-      a.query_type === currentType
+    a => a.user_index === Number(userSelect.value) && a.query_type === currentType
   );
-
   if (!ann) return;
 
-  document.getElementById("implicitness").value = ann.implicitness ?? "yes";
-  document.getElementById("multihop").value = ann.multihop ?? "no";
   document.getElementById("comment").value = ann.comment ?? "";
 
   const ts = ann.type_specific || {};
-
   for (const key in ts) {
-    const el = document.getElementById(`${currentType}_${key}`);
+    const el = document.getElementById(key);
     if (el) el.value = ts[key];
   }
 }
 
 function downloadAnnotations() {
-  const blob = new Blob([JSON.stringify(annotations, null, 2)], {
-    type: "application/json"
-  });
-
+  const blob = new Blob([JSON.stringify(annotations, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "annotations.json";
   a.click();
 }
 
-function normalizeSessions(user) {
-  return [
-    ...(user.eventSessions ?? []).map(s => ({ ...s, kind: "event" })),
-    ...(user.trajectorySessions ?? []).map(s => ({ ...s, kind: "trajectory" })),
-    ...(user.fillerSessions ?? []).map(s => ({ ...s, kind: "filler" }))
-  ];
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function esc(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function highlight(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
 }
 
 init();
