@@ -235,7 +235,7 @@ function renderOneSession(s, idx, query = "") {
   if (isFiller && !isExpanded) {
     content = `
       <div class="filler-summary">
-        <div class="summary-only">${highlight(s.timestamp ?? "filler session", query)}</div>
+        <div class="summary-only">${highlight(s.timestamp ?? "filler session", query)}${s.topic ? ` · ${highlight(s.topic, query)}` : ""}</div>
         <button class="expand-btn" data-id="${sessionId}">Expand</button>
       </div>`;
   } else {
@@ -290,6 +290,7 @@ function renderTypeSpecific() {
       yn("t1_topic",    "Is the query grounded in the topic?"),
       yn("t1_newrec",   "Does the query require recommending something new based on past events for a personalized response?"),
       yn("t1_natural",  "Is the query natural and realistic?"),
+      yn("t1_filler",   "Are filler topics irrelevant to the event topic?"),
     ],
     type2: [
       yn("t2_mixed",    "Is the evidence naturally and well mixed from multiple sessions?"),
@@ -298,6 +299,7 @@ function renderTypeSpecific() {
     type3: [
       yn("t3_progress", "Does the query require understanding the user's progression along the axes for a personalized response?"),
       yn("t3_natural",  "Is the query natural and realistic?"),
+      yn("t3_filler",   "Are filler topics irrelevant to the trajectory axes?"),
     ],
     type4: [
       yn("t4_against",  "Does the user's decision go against their established trajectory?"),
@@ -310,9 +312,9 @@ function renderTypeSpecific() {
 
 function getTypeSpecificValues() {
   const ids = {
-    type1: ["t1_topic", "t1_newrec", "t1_natural"],
+    type1: ["t1_topic", "t1_newrec", "t1_natural", "t1_filler"],
     type2: ["t2_mixed", "t2_natural"],
-    type3: ["t3_progress", "t3_natural"],
+    type3: ["t3_progress", "t3_natural", "t3_filler"],
     type4: ["t4_against", "t4_misalign"],
   }[currentType] ?? [];
 
