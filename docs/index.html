@@ -11,6 +11,7 @@
     <div>
       <h1>Human Evaluation</h1>
       <p class="sub">Review all four query types for one user, then save annotations together.</p>
+      <p class="sub">After finishing, click Submit and send the downloaded <code>annotations.json</code> file.</p>
     </div>
     <div class="topbar-controls">
       <label>
@@ -20,6 +21,17 @@
       <div class="user-nav">
         <button id="prevUserBtn" type="button">Previous</button>
         <button id="nextUserBtn" type="button">Next</button>
+      </div>
+      <div class="user-nav">
+        <button id="prevQueryBtn" type="button">Prev Query</button>
+        <div class="query-type-indicator">
+          Query
+          <span id="queryTypeLabel">type1</span>
+        </div>
+        <button id="nextQueryBtn" type="button">Next Query</button>
+      </div>
+      <div class="user-nav">
+        <button id="submitBtn" type="button">Submit</button>
       </div>
     </div>
   </header>
@@ -63,12 +75,12 @@
       <div id="annotationPanel" class="panel-body">
         <div class="block">
           <h3>Type-specific</h3>
-          <p class="muted small annotation-hint">All four query types are shown for the selected user. Click a query card to sync the evidence panel.</p>
+          <p class="muted small">Please click Save after annotating each query. Navigation and Submit also save automatically.</p>
+          <p id="saveStatus" class="annotation-status">Not saved yet.</p>
           <div id="typeSpecific"></div>
         </div>
         <div class="annotation-controls">
           <button id="saveBtn">Save</button>
-          <button id="downloadBtn">Download</button>
         </div>
       </div>
     </section>

@@ -7,8 +7,10 @@ let annotations = JSON.parse(localStorage.getItem("annotations") || "[]");
 
 let userSelect;
 let prevUserBtn, nextUserBtn;
+let prevQueryBtn, nextQueryBtn, queryTypeLabel;
+let saveStatus;
 let queryBox, eventBox, trajBox, sessionBox;
-let saveBtn, downloadBtn;
+let saveBtn, submitBtn;
 let expandedFillers = new Set();
 let selectedSessionIndex = null;
 
@@ -16,12 +18,16 @@ async function init() {
   userSelect = document.getElementById("userSelect");
   prevUserBtn = document.getElementById("prevUserBtn");
   nextUserBtn = document.getElementById("nextUserBtn");
+  prevQueryBtn = document.getElementById("prevQueryBtn");
+  nextQueryBtn = document.getElementById("nextQueryBtn");
+  queryTypeLabel = document.getElementById("queryTypeLabel");
+  saveStatus = document.getElementById("saveStatus");
   queryBox = document.getElementById("queryPanel");
   eventBox = document.getElementById("eventsList");
   trajBox = document.getElementById("trajectoryList");
   sessionBox = document.getElementById("sessionsList");
   saveBtn = document.getElementById("saveBtn");
-  downloadBtn = document.getElementById("downloadBtn");
+  submitBtn = document.getElementById("submitBtn");
 
   const scrollBtn = document.getElementById("scrollTopBtn");
   window.addEventListener("scroll", () => {
@@ -33,13 +39,18 @@ async function init() {
   document.getElementById("toggleFiller")?.addEventListener("change", renderSessions);
 
   userSelect?.addEventListener("change", () => {
-    selectUser(Number(userSelect.value));
+    selectUser(Number(userSelect.value), { autosave: true });
   });
   prevUserBtn?.addEventListener("click", () => shiftUser(-1));
   nextUserBtn?.addEventListener("click", () => shiftUser(1));
+  prevQueryBtn?.addEventListener("click", () => shiftQuery(-1));
+  nextQueryBtn?.addEventListener("click", () => shiftQuery(1));
 
-  saveBtn?.addEventListener("click", saveAnnotation);
-  downloadBtn?.addEventListener("click", downloadAnnotations);
+  saveBtn?.addEventListener("click", () => {
+    persistCurrentAnnotation();
+    alert(`Saved annotation for user ${userSelect.value}, ${currentType}.`);
+  });
+  submitBtn?.addEventListener("click", submitAnnotations);
 
   try {
     const res = await fetch("./data.json");
@@ -64,33 +75,31 @@ async function init() {
 
 function render() {
   if (!currentUser) return;
-  renderQueries();
+  renderQuery();
   renderEvents();
   renderTrajectory();
   renderSessions();
   renderTypeSpecific();
   loadAnnotation();
+  syncQueryNav();
 }
 
 // ── Query panel ────────────────────────────────────────────────────────────
 
-function renderQueries() {
-  queryBox.innerHTML = QUERY_TYPES.map(type => {
-    const qObj = getQuery(type);
-    if (!qObj) return "";
+function renderQuery() {
+  const qObj = getQuery(currentType);
+  if (!qObj) {
+    queryBox.innerHTML = "";
+    return;
+  }
 
-    return `
-      <div class="query-card${type === currentType ? " active" : ""}" data-query-type="${type}">
-        <div class="query-card-header">
-          <div class="query-card-title">${type}</div>
-          <button class="query-card-button" data-query-type="${type}">Show evidence</button>
-        </div>
-        <div class="query-text">${esc(qObj.text ?? "")}</div>
-        ${buildQueryMeta(type, qObj)}
-      </div>`;
-  }).join("");
+  if (queryTypeLabel) {
+    queryTypeLabel.textContent = currentType;
+  }
 
-  bindTypeSwitchers();
+  queryBox.innerHTML = `
+    <div class="query-text">${esc(qObj.text ?? "")}</div>
+    ${buildQueryMeta(currentType, qObj)}`;
 }
 
 function buildQueryMeta(type, qObj) {
@@ -160,19 +169,6 @@ function buildQueryMeta(type, qObj) {
 
   return meta;
 }
-
-function bindTypeSwitchers() {
-  document.querySelectorAll("[data-query-type]").forEach(el => {
-    el.addEventListener("click", () => {
-      const nextType = el.dataset.queryType;
-      if (!nextType || nextType === currentType) return;
-      currentType = nextType;
-      selectedSessionIndex = null;
-      render();
-    });
-  });
-}
-
 // ── Evidence side panel ────────────────────────────────────────────────────
 
 function renderEvents() {
@@ -298,22 +294,8 @@ function renderOneSession(session, idx, query = "") {
 function renderTypeSpecific() {
   const box = document.getElementById("typeSpecific");
   if (!box) return;
-
-  box.innerHTML = QUERY_TYPES.map(type => {
-    const qObj = getQuery(type);
-    if (!qObj) return "";
-
-    return `
-      <div class="annot-card${type === currentType ? " active" : ""}" data-query-type="${type}">
-        <div class="annot-card-header">
-          <div class="annot-card-title">${type}</div>
-          <button class="query-card-button" data-query-type="${type}">Show evidence</button>
-        </div>
-        ${buildTypeSpecificFields(type)}
-      </div>`;
-  }).join("");
-
-  bindTypeSwitchers();
+  box.innerHTML = buildTypeSpecificFields(currentType);
+  bindAnnotationInputs();
 }
 
 function buildTypeSpecificFields(type) {
@@ -365,55 +347,55 @@ function getTypeSpecificValues(type) {
 // ── Save / load ────────────────────────────────────────────────────────────
 
 function saveAnnotation() {
-  const userIndex = Number(userSelect.value);
-  const timestamp = new Date().toISOString();
+  persistCurrentAnnotation();
+  alert(`Saved annotation for user ${userSelect.value}, ${currentType}.`);
+}
 
-  const records = QUERY_TYPES.map(type => {
-    const qObj = getQuery(type);
-    if (!qObj) return null;
+function persistCurrentAnnotation() {
+  const record = {
+    user_index: Number(userSelect.value),
+    user_id: currentUser.user_id,
+    query_type: currentType,
+    query: getQuery(currentType)?.text,
+    persona: currentUser.persona,
+    topic: currentUser.topic,
+    axes: currentUser.axes,
+    type_specific: getTypeSpecificValues(currentType),
+    timestamp: new Date().toISOString(),
+  };
 
-    return {
-      user_index: userIndex,
-      user_id: currentUser.user_id,
-      query_type: type,
-      query: qObj.text,
-      persona: currentUser.persona,
-      topic: currentUser.topic,
-      axes: currentUser.axes,
-      type_specific: getTypeSpecificValues(type),
-      timestamp,
-    };
-  }).filter(Boolean);
-
-  annotations = annotations.filter(a => a.user_index !== userIndex);
-  annotations.push(...records);
+  annotations = annotations.filter(
+    a => !(a.user_index === record.user_index && a.query_type === record.query_type)
+  );
+  annotations.push(record);
   localStorage.setItem("annotations", JSON.stringify(annotations));
-  alert(`Saved ${records.length} annotations for user ${userIndex}.`);
+  setSaveStatus(`Saved for user ${record.user_index}, ${record.query_type}.`, "saved");
 }
 
 function loadAnnotation() {
-  QUERY_TYPES.forEach(type => {
-    const ann = annotations.find(
-      a => a.user_index === Number(userSelect.value) && a.query_type === type
-    );
-    if (!ann) return;
+  const ann = annotations.find(
+    a => a.user_index === Number(userSelect.value) && a.query_type === currentType
+  );
+  if (!ann) {
+    setSaveStatus("Not saved yet.", "");
+    return;
+  }
 
-    const ts = ann.type_specific || {};
-    Object.keys(ts).forEach(key => {
-      const el = document.getElementById(key);
-      if (el) el.value = ts[key];
-    });
+  const ts = ann.type_specific || {};
+  Object.keys(ts).forEach(key => {
+    const el = document.getElementById(key);
+    if (el) el.value = ts[key];
   });
+  setSaveStatus(`Saved for user ${ann.user_index}, ${ann.query_type}.`, "saved");
 }
 
-function downloadAnnotations() {
+function submitAnnotations() {
+  persistCurrentAnnotation();
   const blob = new Blob([JSON.stringify(annotations, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "annotations.json";
   a.click();
-  annotations = [];
-  localStorage.removeItem("annotations");
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -422,7 +404,10 @@ function getQuery(type) {
   return currentUser.queries?.find(q => q.type === type);
 }
 
-function selectUser(index) {
+function selectUser(index, options = {}) {
+  if (options.autosave) {
+    persistCurrentAnnotation();
+  }
   const nextIndex = Math.max(0, Math.min(index, data.length - 1));
   userSelect.value = String(nextIndex);
   currentUser = data[nextIndex];
@@ -433,13 +418,45 @@ function selectUser(index) {
 }
 
 function shiftUser(delta) {
-  selectUser(Number(userSelect.value) + delta);
+  selectUser(Number(userSelect.value) + delta, { autosave: true });
 }
 
 function syncUserNav() {
   const index = Number(userSelect.value || 0);
   if (prevUserBtn) prevUserBtn.disabled = index <= 0;
   if (nextUserBtn) nextUserBtn.disabled = index >= data.length - 1;
+}
+
+function shiftQuery(delta) {
+  persistCurrentAnnotation();
+  const currentIndex = QUERY_TYPES.indexOf(currentType);
+  const nextIndex = Math.max(0, Math.min(currentIndex + delta, QUERY_TYPES.length - 1));
+  currentType = QUERY_TYPES[nextIndex];
+  selectedSessionIndex = null;
+  render();
+}
+
+function syncQueryNav() {
+  const index = QUERY_TYPES.indexOf(currentType);
+  if (prevQueryBtn) prevQueryBtn.disabled = index <= 0;
+  if (nextQueryBtn) nextQueryBtn.disabled = index >= QUERY_TYPES.length - 1;
+}
+
+function bindAnnotationInputs() {
+  document.querySelectorAll("#typeSpecific select").forEach(el => {
+    el.addEventListener("change", () => {
+      setSaveStatus("Unsaved changes.", "unsaved");
+    });
+  });
+}
+
+function setSaveStatus(message, state) {
+  if (!saveStatus) return;
+  saveStatus.textContent = message;
+  saveStatus.classList.remove("saved", "unsaved");
+  if (state) {
+    saveStatus.classList.add(state);
+  }
 }
 
 function esc(str) {

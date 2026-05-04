@@ -41,6 +41,27 @@
     align-items: flex-end;
     gap: 8px;
   }
+  .query-type-indicator {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 88px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+  .query-type-indicator span {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
   select, input[type="search"], textarea {
     border: 1px solid var(--line);
     background: #fff;
@@ -290,6 +311,14 @@
   .range-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
   .footer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .annotation-status { padding: 10px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--line); }
+  .annotation-status.saved {
+    background: var(--success-soft);
+    border-color: #86efac;
+  }
+  .annotation-status.unsaved {
+    background: #fef3c7;
+    border-color: #fcd34d;
+  }
   
   pre.codeish {
     margin: 0;
@@ -357,51 +386,6 @@
 
   .annot-row select {
     min-width: 70px;
-  }
-
-  .query-card,
-  .annot-card {
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: #fff;
-    padding: 14px;
-  }
-
-  .query-card + .query-card,
-  .annot-card + .annot-card {
-    margin-top: 14px;
-  }
-
-  .query-card.active,
-  .annot-card.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-
-  .query-card-header,
-  .annot-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .query-card-title,
-  .annot-card-title {
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-  }
-
-  .query-card-button {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  .annotation-hint {
-    margin: 0 0 14px;
   }
 
   mark {
