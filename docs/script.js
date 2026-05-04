@@ -5,6 +5,12 @@ const QUERY_TYPE_LABELS = {
   type3: "Type 3: Trajectory-grounded Guidance",
   type4: "Type 4: Trajectory-grounded Corrective Guidance",
 };
+const QUERY_TYPE_SHORT_LABELS = {
+  type1: "Type 1",
+  type2: "Type 2",
+  type3: "Type 3",
+  type4: "Type 4",
+};
 
 let data = null;
 let currentUser = null;
@@ -79,6 +85,7 @@ async function init() {
 
 function render() {
   if (!currentUser) return;
+  renderTypeLabels();
   renderQuery();
   renderEvents();
   renderTrajectory();
@@ -97,13 +104,18 @@ function renderQuery() {
     return;
   }
 
-  if (queryTypeLabel) {
-    queryTypeLabel.textContent = currentType.replace("type", "Type ");
-  }
-
   queryBox.innerHTML = `
     <div class="query-text">${esc(qObj.text ?? "")}</div>
     ${buildQueryMeta(currentType, qObj)}`;
+}
+
+function renderTypeLabels() {
+  if (queryTypeLabel) {
+    queryTypeLabel.textContent = QUERY_TYPE_SHORT_LABELS[currentType] ?? currentType;
+  }
+  if (typeSpecificTitle) {
+    typeSpecificTitle.textContent = QUERY_TYPE_LABELS[currentType] ?? currentType;
+  }
 }
 
 function buildQueryMeta(type, qObj) {
@@ -293,9 +305,6 @@ function renderOneSession(session, idx) {
 function renderTypeSpecific() {
   const box = document.getElementById("typeSpecific");
   if (!box) return;
-  if (typeSpecificTitle) {
-    typeSpecificTitle.textContent = QUERY_TYPE_LABELS[currentType] ?? currentType;
-  }
   box.innerHTML = buildTypeSpecificFields(currentType);
   bindAnnotationInputs();
 }
@@ -461,6 +470,7 @@ function shiftQuery(delta) {
   const nextIndex = Math.max(0, Math.min(currentIndex + delta, QUERY_TYPES.length - 1));
   currentType = QUERY_TYPES[nextIndex];
   selectedSessionIndex = null;
+  renderTypeLabels();
   render();
 }
 
