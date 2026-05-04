@@ -321,7 +321,15 @@ function buildTypeSpecificFields(type) {
     ],
   };
 
-  return fields[type].join("<br>");
+  const freeform = `
+    <label class="annot-textarea">Comment
+      <textarea id="comment" placeholder="Optional: note why something is unnatural, confusing, or needs review."></textarea>
+    </label>
+    <label class="annot-textarea">Rewrite if query is unnatural
+      <textarea id="query_rewrite" placeholder="Optional: write a more natural version of the query."></textarea>
+    </label>`;
+
+  return `${fields[type].join("<br>")}${freeform}`;
 }
 
 function getTypeSpecificValues(type) {
@@ -332,7 +340,11 @@ function getTypeSpecificValues(type) {
     type4: ["t4_against", "t4_natural", "t4_misalign"],
   }[type] ?? [];
 
-  return Object.fromEntries(ids.map(id => [id, document.getElementById(id)?.value]));
+  return {
+    ...Object.fromEntries(ids.map(id => [id, document.getElementById(id)?.value])),
+    comment: document.getElementById("comment")?.value ?? "",
+    query_rewrite: document.getElementById("query_rewrite")?.value ?? "",
+  };
 }
 
 // ── Save / load ────────────────────────────────────────────────────────────
@@ -448,8 +460,8 @@ function syncQueryNav() {
 }
 
 function bindAnnotationInputs() {
-  document.querySelectorAll("#typeSpecific select").forEach(el => {
-    el.addEventListener("change", () => {
+  document.querySelectorAll("#typeSpecific select, #typeSpecific textarea").forEach(el => {
+    el.addEventListener("input", () => {
       setSaveStatus("Unsaved changes.", "unsaved");
     });
   });
