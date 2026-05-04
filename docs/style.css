@@ -63,6 +63,27 @@
   .user-control-group select {
     width: 120px;
   }
+  .persona-display {
+    display: grid;
+    gap: 4px;
+    min-width: 220px;
+    max-width: 360px;
+    align-self: stretch;
+    padding-left: 2px;
+  }
+  .persona-display span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .persona-display strong {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--text);
+  }
   .query-control-group {
     border-left: 4px solid #7c3aed;
     background: #fbfaff;

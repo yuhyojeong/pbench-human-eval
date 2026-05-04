@@ -23,6 +23,7 @@ let prevUserBtn, nextUserBtn;
 let prevQueryBtn, nextQueryBtn, queryTypeLabel;
 let saveStatus;
 let queryBox, eventBox, trajBox, sessionBox;
+let personaText;
 let typeSpecificTitle;
 let saveBtn, submitBtn;
 let expandedFillers = new Set();
@@ -40,6 +41,7 @@ async function init() {
   eventBox = document.getElementById("eventsList");
   trajBox = document.getElementById("trajectoryList");
   sessionBox = document.getElementById("sessionsList");
+  personaText = document.getElementById("personaText");
   typeSpecificTitle = document.getElementById("typeSpecificTitle");
   saveBtn = document.getElementById("saveBtn");
   submitBtn = document.getElementById("submitBtn");
@@ -86,6 +88,7 @@ async function init() {
 function render() {
   if (!currentUser) return;
   renderTypeLabels();
+  renderPersona();
   renderQuery();
   renderEvents();
   renderTrajectory();
@@ -116,6 +119,12 @@ function renderTypeLabels() {
   if (typeSpecificTitle) {
     typeSpecificTitle.textContent = QUERY_TYPE_LABELS[currentType] ?? currentType;
   }
+}
+
+function renderPersona() {
+  if (!personaText) return;
+  personaText.textContent = currentUser.persona ?? "—";
+  personaText.title = currentUser.persona ?? "";
 }
 
 function buildQueryMeta(type, qObj) {
