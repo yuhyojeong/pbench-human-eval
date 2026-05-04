@@ -45,10 +45,7 @@ async function init() {
   prevQueryBtn?.addEventListener("click", () => shiftQuery(-1));
   nextQueryBtn?.addEventListener("click", () => shiftQuery(1));
 
-  saveBtn?.addEventListener("click", () => {
-    persistCurrentAnnotation();
-    alert(`Saved annotation for user ${userSelect.value}, ${currentType}.`);
-  });
+  saveBtn?.addEventListener("click", persistCurrentAnnotation);
   submitBtn?.addEventListener("click", submitAnnotations);
 
   try {
@@ -239,16 +236,13 @@ function renderOneSession(session, idx) {
   const isExpanded = expandedFillers.has(sessionId);
   const turns = session.turns ?? [];
 
-  let content = "";
+  const isCollapsedFiller = isFiller && !isExpanded;
+  const topicLine = isFiller && session.topic
+    ? `<div class="session-topic">${esc(session.topic)}</div>`
+    : "";
 
-  if (isFiller && !isExpanded) {
-    content = `
-      <div class="filler-summary">
-        <div class="summary-only">${esc(session.timestamp ?? "filler session")}${session.topic ? ` · ${esc(session.topic)}` : ""}</div>
-        <button class="expand-btn" data-id="${sessionId}">Expand</button>
-      </div>`;
-  } else {
-    content = `
+  const body = isCollapsedFiller ? "" : `
+    <div class="session-body">
       <div class="turns">
         ${turns.map(t => `
           <div class="turn">
@@ -256,29 +250,39 @@ function renderOneSession(session, idx) {
             <div class="turn-content">${esc(t.content)}</div>
           </div>`).join("")}
         ${isFiller ? `<button class="collapse-btn" data-id="${sessionId}">Collapse</button>` : ""}
-      </div>`;
-  }
+      </div>
+    </div>`;
 
   sessionBox.innerHTML += `
-    <div id="${sessionId}" class="session-card" data-kind="${session.type}">
+    <div id="${sessionId}" class="session-card${isCollapsedFiller ? " collapsed-filler" : ""}" data-kind="${session.type}">
       <div class="session-meta">
         <div>
           <span class="session-title">Session ${idx}</span>
-          <div class="session-subtitle">${session.type} · ${session.timestamp ?? ""}</div>
+          <div class="session-subtitle">${session.timestamp ?? ""} · ${session.type}</div>
+          ${topicLine}
         </div>
+        ${isCollapsedFiller ? `<button class="expand-btn" data-id="${sessionId}" type="button">Open</button>` : ""}
       </div>
-      <div class="session-body">${content}</div>
+      ${body}
     </div>`;
 
   setTimeout(() => {
+    document.querySelectorAll(".collapsed-filler").forEach(card => {
+      card.onclick = () => {
+        expandedFillers.add(card.id);
+        renderSessions();
+      };
+    });
     document.querySelectorAll(".expand-btn").forEach(btn => {
-      btn.onclick = () => {
+      btn.onclick = event => {
+        event.stopPropagation();
         expandedFillers.add(btn.dataset.id);
         renderSessions();
       };
     });
     document.querySelectorAll(".collapse-btn").forEach(btn => {
-      btn.onclick = () => {
+      btn.onclick = event => {
+        event.stopPropagation();
         expandedFillers.delete(btn.dataset.id);
         renderSessions();
       };
@@ -342,11 +346,6 @@ function getTypeSpecificValues(type) {
 }
 
 // ── Save / load ────────────────────────────────────────────────────────────
-
-function saveAnnotation() {
-  persistCurrentAnnotation();
-  alert(`Saved annotation for user ${userSelect.value}, ${currentType}.`);
-}
 
 function persistCurrentAnnotation() {
   const record = {

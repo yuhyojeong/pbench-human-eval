@@ -34,6 +34,11 @@
   
   .topbar h1 { margin: 0 0 4px; font-size: 24px; }
   .sub { margin: 0; color: var(--muted); }
+  .sub-notice {
+    color: #111827;
+    font-weight: 700;
+    font-size: 14px;
+  }
   .sub-strong { color: #0f172a; font-weight: 700; }
   .topbar-controls { display: flex; gap: 12px; flex-wrap: wrap; }
   .topbar-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
@@ -223,12 +228,25 @@
   .session-card[data-kind="event"] .session-meta { background: var(--event); }
   .session-card[data-kind="trajectory"] .session-meta { background: var(--trajectory); }
   .session-card[data-kind="filler"] .session-meta { background: var(--filler); }
+  .session-card.collapsed-filler {
+    cursor: pointer;
+  }
+  .session-card.collapsed-filler:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
   .session-meta {
     display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
     padding: 12px 14px; border-bottom: 1px solid var(--line);
   }
   .session-title { font-weight: 700; }
   .session-subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .session-topic {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.45;
+  }
   .session-body { padding: 12px 14px; }
   .turns { display: flex; flex-direction: column; gap: 10px; }
   .turn {
@@ -315,10 +333,10 @@
     margin: 6px 0 14px;
     font-size: 14px;
     font-weight: 700;
-    color: var(--muted);
+    color: #475467;
   }
   .save-status.saved { color: #15803d; }
-  .save-status.unsaved { color: #b45309; }
+  .save-status.unsaved { color: #c2410c; }
   
   pre.codeish {
     margin: 0;
