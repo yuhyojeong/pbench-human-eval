@@ -21,8 +21,8 @@
   .topbar {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    gap: 16px;
+    align-items: center;
+    gap: 24px;
     padding: 16px 20px 14px;
     border-bottom: 1px solid var(--line);
     background: rgba(255,255,255,0.9);
@@ -32,6 +32,9 @@
     z-index: 100;
   }
   
+  .topbar > div:first-child {
+    flex: 0 0 320px;
+  }
   .topbar h1 { margin: 0 0 4px; font-size: 24px; }
   .sub { margin: 0; color: var(--muted); }
   .sub-notice {
@@ -41,10 +44,15 @@
   }
   .sub-strong { color: #0f172a; font-weight: 700; }
   .topbar-controls {
-    display: flex;
-    align-items: flex-end;
-    gap: 14px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "user user"
+      "query submit";
+    align-items: end;
+    gap: 10px 14px;
+    flex: 1 1 auto;
+    max-width: 900px;
   }
   .topbar-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
   .control-group {
@@ -59,6 +67,7 @@
   .user-control-group {
     display: grid;
     align-items: stretch;
+    grid-area: user;
     border-left: 4px solid #2563eb;
     background: #f8fbff;
   }
@@ -92,6 +101,8 @@
     color: var(--text);
   }
   .query-control-group {
+    grid-area: query;
+    justify-self: start;
     border-left: 4px solid #7c3aed;
     background: #fbfaff;
   }
@@ -101,9 +112,9 @@
     gap: 8px;
   }
   .submit-control {
+    grid-area: submit;
     display: flex;
     align-items: flex-end;
-    padding-left: 4px;
   }
   .query-type-indicator {
     display: flex;
