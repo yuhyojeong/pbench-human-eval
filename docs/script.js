@@ -1,22 +1,26 @@
+const QUERY_TYPES = ["type1", "type2", "type3", "type4"];
+
 let data = null;
 let currentUser = null;
 let currentType = "type1";
 let annotations = JSON.parse(localStorage.getItem("annotations") || "[]");
 
-let userSelect, typeSelect;
+let userSelect;
+let prevUserBtn, nextUserBtn;
 let queryBox, eventBox, trajBox, sessionBox;
 let saveBtn, downloadBtn;
 let expandedFillers = new Set();
 let selectedSessionIndex = null;
 
 async function init() {
-  userSelect  = document.getElementById("userSelect");
-  typeSelect  = document.getElementById("queryTypeSelect");
-  queryBox    = document.getElementById("queryPanel");
-  eventBox    = document.getElementById("eventsList");
-  trajBox     = document.getElementById("trajectoryList");
-  sessionBox  = document.getElementById("sessionsList");
-  saveBtn     = document.getElementById("saveBtn");
+  userSelect = document.getElementById("userSelect");
+  prevUserBtn = document.getElementById("prevUserBtn");
+  nextUserBtn = document.getElementById("nextUserBtn");
+  queryBox = document.getElementById("queryPanel");
+  eventBox = document.getElementById("eventsList");
+  trajBox = document.getElementById("trajectoryList");
+  sessionBox = document.getElementById("sessionsList");
+  saveBtn = document.getElementById("saveBtn");
   downloadBtn = document.getElementById("downloadBtn");
 
   const scrollBtn = document.getElementById("scrollTopBtn");
@@ -29,16 +33,10 @@ async function init() {
   document.getElementById("toggleFiller")?.addEventListener("change", renderSessions);
 
   userSelect?.addEventListener("change", () => {
-    currentUser = data[userSelect.value];
-    selectedSessionIndex = null;
-    render();
+    selectUser(Number(userSelect.value));
   });
-
-  typeSelect?.addEventListener("change", () => {
-    currentType = typeSelect.value;
-    selectedSessionIndex = null;
-    render();
-  });
+  prevUserBtn?.addEventListener("click", () => shiftUser(-1));
+  nextUserBtn?.addEventListener("click", () => shiftUser(1));
 
   saveBtn?.addEventListener("click", saveAnnotation);
   downloadBtn?.addEventListener("click", downloadAnnotations);
@@ -47,14 +45,6 @@ async function init() {
     const res = await fetch("./data.json");
     const raw = await res.json();
     data = raw.records ?? raw;
-
-    typeSelect.innerHTML = "";
-    ["type1", "type2", "type3", "type4"].forEach(t => {
-      const opt = document.createElement("option");
-      opt.value = t;
-      opt.textContent = t;
-      typeSelect.appendChild(opt);
-    });
 
     userSelect.innerHTML = "";
     data.forEach((d, i) => {
@@ -65,6 +55,7 @@ async function init() {
     });
 
     currentUser = data[0];
+    syncUserNav();
     render();
   } catch (e) {
     console.error("INIT ERROR:", e);
@@ -73,7 +64,7 @@ async function init() {
 
 function render() {
   if (!currentUser) return;
-  renderQuery();
+  renderQueries();
   renderEvents();
   renderTrajectory();
   renderSessions();
@@ -83,14 +74,29 @@ function render() {
 
 // ── Query panel ────────────────────────────────────────────────────────────
 
-function renderQuery() {
-  const qObj = currentUser.queries?.find(q => q.type === currentType);
-  if (!qObj) { queryBox.innerHTML = ""; return; }
+function renderQueries() {
+  queryBox.innerHTML = QUERY_TYPES.map(type => {
+    const qObj = getQuery(type);
+    if (!qObj) return "";
 
+    return `
+      <div class="query-card${type === currentType ? " active" : ""}" data-query-type="${type}">
+        <div class="query-card-header">
+          <div class="query-card-title">${type}</div>
+          <button class="query-card-button" data-query-type="${type}">Show evidence</button>
+        </div>
+        <div class="query-text">${esc(qObj.text ?? "")}</div>
+        ${buildQueryMeta(type, qObj)}
+      </div>`;
+  }).join("");
+
+  bindTypeSwitchers();
+}
+
+function buildQueryMeta(type, qObj) {
   let meta = "";
 
-  if (currentType === "type1") {
-    const events = currentUser.events ?? [];
+  if (type === "type1") {
     meta += `
       <div class="query-meta">
         <div><b>Topic:</b> ${esc(currentUser.topic ?? "—")}</div>
@@ -98,63 +104,73 @@ function renderQuery() {
       <div class="query-meta">
         <div><b>Events</b></div>
         <ol class="meta-list">
-          ${events.map(e => `<li>${esc(e.text)}</li>`).join("")}
+          ${(currentUser.events ?? []).map(e => `<li>${esc(e.text)}</li>`).join("")}
         </ol>
       </div>`;
   }
 
-  if (currentType === "type2") {
+  if (type === "type2") {
     const indices = qObj.evidenceEventIndices ?? [];
-    const evts    = qObj.evidenceEvents ?? [];
+    const events = qObj.evidenceEvents ?? [];
     meta += `
       <div class="query-meta">
         <div><b>Evidence events</b></div>
         <ol class="meta-list">
-          ${evts.map((e, i) => `<li><span class="item-index">#${indices[i]}</span> ${esc(e)}</li>`).join("")}
+          ${events.map((e, i) => `<li><span class="item-index">#${indices[i]}</span> ${esc(e)}</li>`).join("")}
         </ol>
       </div>`;
   }
 
-  if (currentType === "type3") {
-    const axes = currentUser.axes ?? [];
-    const traj = currentUser.trajectory ?? [];
+  if (type === "type3") {
     meta += `
       <div class="query-meta">
         <div><b>Axes</b></div>
         <ul class="meta-list">
-          ${axes.map(a => `<li>${esc(a)}</li>`).join("")}
+          ${(currentUser.axes ?? []).map(a => `<li>${esc(a)}</li>`).join("")}
         </ul>
       </div>
       <div class="query-meta">
         <div><b>Trajectory</b></div>
         <ol class="meta-list">
-          ${traj.map(t => `<li>${esc(t.text)}</li>`).join("")}
+          ${(currentUser.trajectory ?? []).map(t => `<li>${esc(t.text)}</li>`).join("")}
         </ol>
       </div>`;
   }
 
-  if (currentType === "type4") {
+  if (type === "type4") {
     const indices = qObj.evidenceTrajectoryIndices ?? [];
-    const trjs    = qObj.evidenceTrajectory ?? [];
+    const trajectory = qObj.evidenceTrajectory ?? [];
     meta += `
       <div class="query-meta">
         <div><b>Evidence trajectory</b></div>
         <ol class="meta-list">
-          ${trjs.map((t, i) => `<li><span class="item-index">#${indices[i]}</span> ${esc(t)}</li>`).join("")}
+          ${trajectory.map((t, i) => `<li><span class="item-index">#${indices[i]}</span> ${esc(t)}</li>`).join("")}
         </ol>
       </div>`;
   }
 
-  const r = qObj.responses ?? {};
+  const responses = qObj.responses ?? {};
   meta += `
     <div class="query-meta response-section">
       <div class="response-label">Personalized response</div>
-      <div class="response-block">${esc(r.personalized ?? "—")}</div>
+      <div class="response-block">${esc(responses.personalized ?? "—")}</div>
       <div class="response-label" style="margin-top:8px;">General response</div>
-      <div class="response-block">${esc(r.general ?? "—")}</div>
+      <div class="response-block">${esc(responses.general ?? "—")}</div>
     </div>`;
 
-  queryBox.innerHTML = `<div class="query-text">${esc(qObj.text ?? "")}</div>${meta}`;
+  return meta;
+}
+
+function bindTypeSwitchers() {
+  document.querySelectorAll("[data-query-type]").forEach(el => {
+    el.addEventListener("click", () => {
+      const nextType = el.dataset.queryType;
+      if (!nextType || nextType === currentType) return;
+      currentType = nextType;
+      selectedSessionIndex = null;
+      render();
+    });
+  });
 }
 
 // ── Evidence side panel ────────────────────────────────────────────────────
@@ -163,7 +179,7 @@ function renderEvents() {
   eventBox.innerHTML = "";
   if (!["type1", "type2"].includes(currentType)) return;
 
-  const qObj = currentUser.queries?.find(q => q.type === currentType);
+  const qObj = getQuery(currentType);
   const evidenceSet = new Set(qObj?.evidenceEventIndices ?? []);
 
   (currentUser.events ?? []).forEach((e, i) => {
@@ -185,7 +201,7 @@ function renderTrajectory() {
   trajBox.innerHTML = "";
   if (!["type3", "type4"].includes(currentType)) return;
 
-  const qObj = currentUser.queries?.find(q => q.type === currentType);
+  const qObj = getQuery(currentType);
   const evidenceSet = new Set(qObj?.evidenceTrajectoryIndices ?? []);
 
   (currentUser.trajectory ?? []).forEach((t, i) => {
@@ -207,35 +223,35 @@ function renderTrajectory() {
 
 function renderSessions() {
   sessionBox.innerHTML = "";
-  const sessions  = currentUser.sessions ?? [];
+  const sessions = currentUser.sessions ?? [];
   const showFiller = document.getElementById("toggleFiller")?.checked;
-  const query      = document.getElementById("sessionSearch")?.value?.toLowerCase() || "";
+  const query = document.getElementById("sessionSearch")?.value?.toLowerCase() || "";
 
   if (selectedSessionIndex !== null) {
-    const s = sessions[selectedSessionIndex];
-    if (s) renderOneSession(s, selectedSessionIndex, query);
+    const session = sessions[selectedSessionIndex];
+    if (session) renderOneSession(session, selectedSessionIndex, query);
     return;
   }
 
   if (showFiller) {
-    sessions.forEach((s, idx) => {
-      if (s.type === "filler") renderOneSession(s, idx, query);
+    sessions.forEach((session, idx) => {
+      if (session.type === "filler") renderOneSession(session, idx, query);
     });
   }
 }
 
-function renderOneSession(s, idx, query = "") {
-  const isFiller   = s.type === "filler";
-  const sessionId  = `session-${idx}`;
+function renderOneSession(session, idx, query = "") {
+  const isFiller = session.type === "filler";
+  const sessionId = `session-${idx}`;
   const isExpanded = expandedFillers.has(sessionId);
-  const turns      = s.turns ?? [];
+  const turns = session.turns ?? [];
 
   let content = "";
 
   if (isFiller && !isExpanded) {
     content = `
       <div class="filler-summary">
-        <div class="summary-only">${highlight(s.timestamp ?? "filler session", query)}${s.topic ? ` · ${highlight(s.topic, query)}` : ""}</div>
+        <div class="summary-only">${highlight(session.timestamp ?? "filler session", query)}${session.topic ? ` · ${highlight(session.topic, query)}` : ""}</div>
         <button class="expand-btn" data-id="${sessionId}">Expand</button>
       </div>`;
   } else {
@@ -251,11 +267,11 @@ function renderOneSession(s, idx, query = "") {
   }
 
   sessionBox.innerHTML += `
-    <div id="${sessionId}" class="session-card" data-kind="${s.type}">
+    <div id="${sessionId}" class="session-card" data-kind="${session.type}">
       <div class="session-meta">
         <div>
           <span class="session-title">Session ${idx}</span>
-          <div class="session-subtitle">${s.type} · ${s.timestamp ?? ""}</div>
+          <div class="session-subtitle">${session.type} · ${session.timestamp ?? ""}</div>
         </div>
       </div>
       <div class="session-body">${content}</div>
@@ -263,10 +279,16 @@ function renderOneSession(s, idx, query = "") {
 
   setTimeout(() => {
     document.querySelectorAll(".expand-btn").forEach(btn => {
-      btn.onclick = () => { expandedFillers.add(btn.dataset.id); renderSessions(); };
+      btn.onclick = () => {
+        expandedFillers.add(btn.dataset.id);
+        renderSessions();
+      };
     });
     document.querySelectorAll(".collapse-btn").forEach(btn => {
-      btn.onclick = () => { expandedFillers.delete(btn.dataset.id); renderSessions(); };
+      btn.onclick = () => {
+        expandedFillers.delete(btn.dataset.id);
+        renderSessions();
+      };
     });
   }, 0);
 }
@@ -277,6 +299,24 @@ function renderTypeSpecific() {
   const box = document.getElementById("typeSpecific");
   if (!box) return;
 
+  box.innerHTML = QUERY_TYPES.map(type => {
+    const qObj = getQuery(type);
+    if (!qObj) return "";
+
+    return `
+      <div class="annot-card${type === currentType ? " active" : ""}" data-query-type="${type}">
+        <div class="annot-card-header">
+          <div class="annot-card-title">${type}</div>
+          <button class="query-card-button" data-query-type="${type}">Show evidence</button>
+        </div>
+        ${buildTypeSpecificFields(type)}
+      </div>`;
+  }).join("");
+
+  bindTypeSwitchers();
+}
+
+function buildTypeSpecificFields(type) {
   const yn = (id, label) => `
     <label class="annot-row">${label}
       <select id="${id}">
@@ -285,38 +325,39 @@ function renderTypeSpecific() {
       </select>
     </label>`;
 
-  const map = {
+  const fields = {
     type1: [
-      yn("t1_topic",    "Is the query grounded in the topic?"),
-      yn("t1_newrec",   "Does the query require recommending something new based on past events for a personalized response?"),
-      yn("t1_natural",  "Is the query natural and realistic?"),
-      yn("t1_filler",   "Are filler topics irrelevant to the event topic?"),
+      yn("t1_topic", "Is the query grounded in the topic?"),
+      yn("t1_newrec", "Does the query require recommending something new based on past events for a personalized response?"),
+      yn("t1_natural", "Is the query natural and realistic?"),
+      yn("t1_filler", "Are filler topics irrelevant to the event topic?"),
     ],
     type2: [
-      yn("t2_mixed",    "Is the evidence naturally and well mixed from multiple sessions?"),
-      yn("t2_natural",  "Is the query natural and realistic?"),
+      yn("t2_mixed", "Is the evidence naturally and well mixed from multiple sessions?"),
+      yn("t2_natural", "Is the query natural and realistic?"),
     ],
     type3: [
       yn("t3_progress", "Does the query require understanding the user's progression along the axes for a personalized response?"),
-      yn("t3_natural",  "Is the query natural and realistic?"),
-      yn("t3_filler",   "Are filler topics irrelevant to the trajectory axes?"),
+      yn("t3_natural", "Is the query natural and realistic?"),
+      yn("t3_filler", "Are filler topics irrelevant to the trajectory axes?"),
     ],
     type4: [
-      yn("t4_against",  "Does the user's decision go against their established trajectory?"),
-      yn("t4_misalign", "Does the query naturally misalign with the evidence?"),
+      yn("t4_against", "Does the user's decision go against their established trajectory?"),
+      yn("t4_natural", "Is the query natural and realistic?"),
+      yn("t4_misalign", "Does the query misalign with the evidence?"),
     ],
   };
 
-  box.innerHTML = (map[currentType] ?? []).join("<br>");
+  return fields[type].join("<br>");
 }
 
-function getTypeSpecificValues() {
+function getTypeSpecificValues(type) {
   const ids = {
     type1: ["t1_topic", "t1_newrec", "t1_natural", "t1_filler"],
     type2: ["t2_mixed", "t2_natural"],
     type3: ["t3_progress", "t3_natural", "t3_filler"],
-    type4: ["t4_against", "t4_misalign"],
-  }[currentType] ?? [];
+    type4: ["t4_against", "t4_natural", "t4_misalign"],
+  }[type] ?? [];
 
   return Object.fromEntries(ids.map(id => [id, document.getElementById(id)?.value]));
 }
@@ -324,40 +365,45 @@ function getTypeSpecificValues() {
 // ── Save / load ────────────────────────────────────────────────────────────
 
 function saveAnnotation() {
-  const record = {
-    user_index:    Number(userSelect.value),
-    user_id:       currentUser.user_id,
-    query_type:    currentType,
-    query:         currentUser.queries?.find(q => q.type === currentType)?.text,
-    persona:       currentUser.persona,
-    topic:         currentUser.topic,
-    axes:          currentUser.axes,
-    type_specific: getTypeSpecificValues(),
-    comment:       document.getElementById("comment")?.value,
-    timestamp:     new Date().toISOString(),
-  };
+  const userIndex = Number(userSelect.value);
+  const timestamp = new Date().toISOString();
 
-  annotations = annotations.filter(
-    a => !(a.user_index === record.user_index && a.query_type === record.query_type)
-  );
-  annotations.push(record);
+  const records = QUERY_TYPES.map(type => {
+    const qObj = getQuery(type);
+    if (!qObj) return null;
+
+    return {
+      user_index: userIndex,
+      user_id: currentUser.user_id,
+      query_type: type,
+      query: qObj.text,
+      persona: currentUser.persona,
+      topic: currentUser.topic,
+      axes: currentUser.axes,
+      type_specific: getTypeSpecificValues(type),
+      timestamp,
+    };
+  }).filter(Boolean);
+
+  annotations = annotations.filter(a => a.user_index !== userIndex);
+  annotations.push(...records);
   localStorage.setItem("annotations", JSON.stringify(annotations));
-  alert("Saved!");
+  alert(`Saved ${records.length} annotations for user ${userIndex}.`);
 }
 
 function loadAnnotation() {
-  const ann = annotations.find(
-    a => a.user_index === Number(userSelect.value) && a.query_type === currentType
-  );
-  if (!ann) return;
+  QUERY_TYPES.forEach(type => {
+    const ann = annotations.find(
+      a => a.user_index === Number(userSelect.value) && a.query_type === type
+    );
+    if (!ann) return;
 
-  document.getElementById("comment").value = ann.comment ?? "";
-
-  const ts = ann.type_specific || {};
-  for (const key in ts) {
-    const el = document.getElementById(key);
-    if (el) el.value = ts[key];
-  }
+    const ts = ann.type_specific || {};
+    Object.keys(ts).forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = ts[key];
+    });
+  });
 }
 
 function downloadAnnotations() {
@@ -366,9 +412,35 @@ function downloadAnnotations() {
   a.href = URL.createObjectURL(blob);
   a.download = "annotations.json";
   a.click();
+  annotations = [];
+  localStorage.removeItem("annotations");
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+function getQuery(type) {
+  return currentUser.queries?.find(q => q.type === type);
+}
+
+function selectUser(index) {
+  const nextIndex = Math.max(0, Math.min(index, data.length - 1));
+  userSelect.value = String(nextIndex);
+  currentUser = data[nextIndex];
+  currentType = "type1";
+  selectedSessionIndex = null;
+  syncUserNav();
+  render();
+}
+
+function shiftUser(delta) {
+  selectUser(Number(userSelect.value) + delta);
+}
+
+function syncUserNav() {
+  const index = Number(userSelect.value || 0);
+  if (prevUserBtn) prevUserBtn.disabled = index <= 0;
+  if (nextUserBtn) nextUserBtn.disabled = index >= data.length - 1;
+}
 
 function esc(str) {
   return String(str ?? "")

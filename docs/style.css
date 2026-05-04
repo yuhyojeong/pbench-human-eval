@@ -36,6 +36,11 @@
   .sub { margin: 0; color: var(--muted); }
   .topbar-controls { display: flex; gap: 12px; flex-wrap: wrap; }
   .topbar-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+  .user-nav {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
   select, input[type="search"], textarea {
     border: 1px solid var(--line);
     background: #fff;
@@ -352,6 +357,51 @@
 
   .annot-row select {
     min-width: 70px;
+  }
+
+  .query-card,
+  .annot-card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+    padding: 14px;
+  }
+
+  .query-card + .query-card,
+  .annot-card + .annot-card {
+    margin-top: 14px;
+  }
+
+  .query-card.active,
+  .annot-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .query-card-header,
+  .annot-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .query-card-title,
+  .annot-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .query-card-button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .annotation-hint {
+    margin: 0 0 14px;
   }
 
   mark {

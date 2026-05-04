@@ -10,17 +10,17 @@
   <header class="topbar">
     <div>
       <h1>Human Evaluation</h1>
-      <p class="sub">Query · Evidence · Annotation workflow for type1–4 evaluation</p>
+      <p class="sub">Review all four query types for one user, then save annotations together.</p>
     </div>
     <div class="topbar-controls">
       <label>
         User
         <select id="userSelect"></select>
       </label>
-      <label>
-        Query Type
-        <select id="queryTypeSelect"></select>
-      </label>
+      <div class="user-nav">
+        <button id="prevUserBtn" type="button">Previous</button>
+        <button id="nextUserBtn" type="button">Next</button>
+      </div>
     </div>
   </header>
 
@@ -61,23 +61,11 @@
       </div>
 
       <div id="annotationPanel" class="panel-body">
-        <!-- Type-specific -->
         <div class="block">
           <h3>Type-specific</h3>
+          <p class="muted small annotation-hint">All four query types are shown for the selected user. Click a query card to sync the evidence panel.</p>
           <div id="typeSpecific"></div>
         </div>
-
-        <hr>
-
-        <!-- Comment -->
-        <div class="block">
-          <h3>Comment</h3>
-          <textarea id="comment" rows="4" style="width:100%;"></textarea>
-        </div>
-
-        <hr>
-
-        <!-- Buttons -->
         <div class="annotation-controls">
           <button id="saveBtn">Save</button>
           <button id="downloadBtn">Download</button>
