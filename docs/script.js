@@ -261,7 +261,6 @@ function renderOneSession(session, idx) {
           <div class="session-subtitle">${session.timestamp ?? ""} · ${session.type}</div>
           ${topicLine}
         </div>
-        ${isCollapsedFiller ? `<button class="expand-btn" data-id="${sessionId}" type="button">Open</button>` : ""}
       </div>
       ${body}
     </div>`;
@@ -270,13 +269,6 @@ function renderOneSession(session, idx) {
     document.querySelectorAll(".collapsed-filler").forEach(card => {
       card.onclick = () => {
         expandedFillers.add(card.id);
-        renderSessions();
-      };
-    });
-    document.querySelectorAll(".expand-btn").forEach(btn => {
-      btn.onclick = event => {
-        event.stopPropagation();
-        expandedFillers.add(btn.dataset.id);
         renderSessions();
       };
     });
