@@ -1,4 +1,10 @@
 const QUERY_TYPES = ["type1", "type2", "type3", "type4"];
+const QUERY_TYPE_LABELS = {
+  type1: "Type 1: Event-grounded Guidance",
+  type2: "Type 2: Event-grounded Corrective Guidance",
+  type3: "Type 3: Trajectory-grounded Guidance",
+  type4: "Type 4: Trajectory-grounded Corrective Guidance",
+};
 
 let data = null;
 let currentUser = null;
@@ -11,6 +17,7 @@ let prevUserBtn, nextUserBtn;
 let prevQueryBtn, nextQueryBtn, queryTypeLabel;
 let saveStatus;
 let queryBox, eventBox, trajBox, sessionBox;
+let typeSpecificTitle;
 let saveBtn, submitBtn;
 let expandedFillers = new Set();
 let selectedSessionIndex = null;
@@ -27,6 +34,7 @@ async function init() {
   eventBox = document.getElementById("eventsList");
   trajBox = document.getElementById("trajectoryList");
   sessionBox = document.getElementById("sessionsList");
+  typeSpecificTitle = document.getElementById("typeSpecificTitle");
   saveBtn = document.getElementById("saveBtn");
   submitBtn = document.getElementById("submitBtn");
 
@@ -90,7 +98,7 @@ function renderQuery() {
   }
 
   if (queryTypeLabel) {
-    queryTypeLabel.textContent = currentType;
+    queryTypeLabel.textContent = currentType.replace("type", "Type ");
   }
 
   queryBox.innerHTML = `
@@ -285,6 +293,9 @@ function renderOneSession(session, idx) {
 function renderTypeSpecific() {
   const box = document.getElementById("typeSpecific");
   if (!box) return;
+  if (typeSpecificTitle) {
+    typeSpecificTitle.textContent = QUERY_TYPE_LABELS[currentType] ?? currentType;
+  }
   box.innerHTML = buildTypeSpecificFields(currentType);
   bindAnnotationInputs();
 }
