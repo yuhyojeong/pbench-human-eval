@@ -13,23 +13,27 @@
       <p class="sub sub-notice">After finishing, click Submit and send the downloaded <code>annotations.json</code> file.</p>
     </div>
     <div class="topbar-controls">
-      <label>
-        User
-        <select id="userSelect"></select>
-      </label>
-      <div class="user-nav">
-        <button id="prevUserBtn" type="button">Previous</button>
-        <button id="nextUserBtn" type="button">Next</button>
+      <div class="control-group user-control-group">
+        <label>
+          User
+          <select id="userSelect"></select>
+        </label>
+        <div class="nav-buttons">
+          <button id="prevUserBtn" type="button">Prev User</button>
+          <button id="nextUserBtn" type="button">Next User</button>
+        </div>
       </div>
-      <div class="user-nav">
-        <button id="prevQueryBtn" type="button">Prev Query</button>
+      <div class="control-group query-control-group">
         <div class="query-type-indicator">
           Query
           <span id="queryTypeLabel">type1</span>
         </div>
-        <button id="nextQueryBtn" type="button">Next Query</button>
+        <div class="nav-buttons">
+          <button id="prevQueryBtn" type="button">Prev Query</button>
+          <button id="nextQueryBtn" type="button">Next Query</button>
+        </div>
       </div>
-      <div class="user-nav">
+      <div class="submit-control">
         <button id="submitBtn" type="button">Submit</button>
       </div>
     </div>

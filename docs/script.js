@@ -159,8 +159,8 @@ function buildQueryMeta(type, qObj) {
     <div class="query-meta response-section">
       <div class="response-label">Personalized response</div>
       <div class="response-block">${esc(responses.personalized ?? "—")}</div>
-      <div class="response-label" style="margin-top:8px;">General response</div>
-      <div class="response-block">${esc(responses.general ?? "—")}</div>
+      <div class="response-label" style="margin-top:8px;">Memoryless response</div>
+      <div class="response-block">${esc(responses.memoryless ?? responses.general ?? "—")}</div>
     </div>`;
 
   return meta;
