@@ -35,7 +35,6 @@ async function init() {
   });
   scrollBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
-  document.getElementById("sessionSearch")?.addEventListener("input", renderSessions);
   document.getElementById("toggleFiller")?.addEventListener("change", renderSessions);
 
   userSelect?.addEventListener("change", () => {
@@ -221,22 +220,20 @@ function renderSessions() {
   sessionBox.innerHTML = "";
   const sessions = currentUser.sessions ?? [];
   const showFiller = document.getElementById("toggleFiller")?.checked;
-  const query = document.getElementById("sessionSearch")?.value?.toLowerCase() || "";
-
   if (selectedSessionIndex !== null) {
     const session = sessions[selectedSessionIndex];
-    if (session) renderOneSession(session, selectedSessionIndex, query);
+    if (session) renderOneSession(session, selectedSessionIndex);
     return;
   }
 
   if (showFiller) {
     sessions.forEach((session, idx) => {
-      if (session.type === "filler") renderOneSession(session, idx, query);
+      if (session.type === "filler") renderOneSession(session, idx);
     });
   }
 }
 
-function renderOneSession(session, idx, query = "") {
+function renderOneSession(session, idx) {
   const isFiller = session.type === "filler";
   const sessionId = `session-${idx}`;
   const isExpanded = expandedFillers.has(sessionId);
@@ -247,7 +244,7 @@ function renderOneSession(session, idx, query = "") {
   if (isFiller && !isExpanded) {
     content = `
       <div class="filler-summary">
-        <div class="summary-only">${highlight(session.timestamp ?? "filler session", query)}${session.topic ? ` · ${highlight(session.topic, query)}` : ""}</div>
+        <div class="summary-only">${esc(session.timestamp ?? "filler session")}${session.topic ? ` · ${esc(session.topic)}` : ""}</div>
         <button class="expand-btn" data-id="${sessionId}">Expand</button>
       </div>`;
   } else {
@@ -256,7 +253,7 @@ function renderOneSession(session, idx, query = "") {
         ${turns.map(t => `
           <div class="turn">
             <div class="turn-role">${esc(t.role)}</div>
-            <div class="turn-content">${highlight(esc(t.content), query)}</div>
+            <div class="turn-content">${esc(t.content)}</div>
           </div>`).join("")}
         ${isFiller ? `<button class="collapse-btn" data-id="${sessionId}">Collapse</button>` : ""}
       </div>`;
@@ -369,7 +366,7 @@ function persistCurrentAnnotation() {
   );
   annotations.push(record);
   localStorage.setItem("annotations", JSON.stringify(annotations));
-  setSaveStatus(`Saved for user ${record.user_index}, ${record.query_type}.`, "saved");
+  setSaveStatus("Saved!", "saved");
 }
 
 function loadAnnotation() {
@@ -386,7 +383,7 @@ function loadAnnotation() {
     const el = document.getElementById(key);
     if (el) el.value = ts[key];
   });
-  setSaveStatus(`Saved for user ${ann.user_index}, ${ann.query_type}.`, "saved");
+  setSaveStatus("Saved!", "saved");
 }
 
 function submitAnnotations() {
@@ -464,12 +461,6 @@ function esc(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-}
-
-function highlight(text, query) {
-  if (!query) return text;
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
 }
 
 init();

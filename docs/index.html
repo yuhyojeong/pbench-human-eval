@@ -10,7 +10,6 @@
   <header class="topbar">
     <div>
       <h1>Human Evaluation</h1>
-      <p class="sub">Review all four query types for one user, then save annotations together.</p>
       <p class="sub">After finishing, click Submit and send the downloaded <code>annotations.json</code> file.</p>
     </div>
     <div class="topbar-controls">
@@ -46,7 +45,6 @@
       <div class="panel-header sticky evidence-header">
         <h2>Evidence</h2>
         <div class="evidence-controls">
-          <input id="sessionSearch" type="search" placeholder="Search sessions / turns" />
           <label><input type="checkbox" id="toggleFiller" /> Filler</label>
         </div>
       </div>
@@ -75,8 +73,8 @@
       <div id="annotationPanel" class="panel-body">
         <div class="block">
           <h3>Type-specific</h3>
-          <p class="muted small">Please click Save after annotating each query. Navigation and Submit also save automatically.</p>
-          <p id="saveStatus" class="annotation-status">Not saved yet.</p>
+          <p class="sub-strong small">Please click Save before moving on. Navigation and Submit also save automatically.</p>
+          <p id="saveStatus" class="save-status">Not saved yet.</p>
           <div id="typeSpecific"></div>
         </div>
         <div class="annotation-controls">

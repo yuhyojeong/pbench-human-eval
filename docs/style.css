@@ -34,6 +34,7 @@
   
   .topbar h1 { margin: 0 0 4px; font-size: 24px; }
   .sub { margin: 0; color: var(--muted); }
+  .sub-strong { color: #0f172a; font-weight: 700; }
   .topbar-controls { display: flex; gap: 12px; flex-wrap: wrap; }
   .topbar-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
   .user-nav {
@@ -310,15 +311,14 @@
   .range-wrap { display: grid; gap: 6px; }
   .range-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
   .footer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .annotation-status { padding: 10px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--line); }
-  .annotation-status.saved {
-    background: var(--success-soft);
-    border-color: #86efac;
+  .save-status {
+    margin: 6px 0 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--muted);
   }
-  .annotation-status.unsaved {
-    background: #fef3c7;
-    border-color: #fcd34d;
-  }
+  .save-status.saved { color: #15803d; }
+  .save-status.unsaved { color: #b45309; }
   
   pre.codeish {
     margin: 0;
