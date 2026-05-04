@@ -4,6 +4,7 @@ let data = null;
 let currentUser = null;
 let currentType = "type1";
 let annotations = JSON.parse(localStorage.getItem("annotations") || "[]");
+let userCache = new Map();
 
 let userSelect;
 let prevUserBtn, nextUserBtn;
@@ -37,8 +38,8 @@ async function init() {
 
   document.getElementById("toggleFiller")?.addEventListener("change", renderSessions);
 
-  userSelect?.addEventListener("change", () => {
-    selectUser(Number(userSelect.value), { autosave: true });
+  userSelect?.addEventListener("change", async () => {
+    await selectUser(Number(userSelect.value), { autosave: true });
   });
   prevUserBtn?.addEventListener("click", () => shiftUser(-1));
   nextUserBtn?.addEventListener("click", () => shiftUser(1));
@@ -49,7 +50,7 @@ async function init() {
   submitBtn?.addEventListener("click", submitAnnotations);
 
   try {
-    const res = await fetch("./data.json");
+    const res = await fetch("./data/index.json");
     const raw = await res.json();
     data = raw.records ?? raw;
 
@@ -57,13 +58,12 @@ async function init() {
     data.forEach((d, i) => {
       const opt = document.createElement("option");
       opt.value = i;
-      opt.textContent = `${i} — ${d.persona}`;
+      opt.textContent = `User ${i}`;
+      opt.title = d.persona ?? d.user_id ?? `User ${i}`;
       userSelect.appendChild(opt);
     });
 
-    currentUser = data[0];
-    syncUserNav();
-    render();
+    await selectUser(0);
   } catch (e) {
     console.error("INIT ERROR:", e);
   }
@@ -392,21 +392,40 @@ function getQuery(type) {
   return currentUser.queries?.find(q => q.type === type);
 }
 
-function selectUser(index, options = {}) {
+async function loadUser(index) {
+  if (userCache.has(index)) {
+    return userCache.get(index);
+  }
+
+  const meta = data[index];
+  if (!meta) return null;
+
+  const res = await fetch(`./data/${meta.file}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load user ${index}: ${res.status}`);
+  }
+
+  const record = await res.json();
+  userCache.set(index, record);
+  return record;
+}
+
+async function selectUser(index, options = {}) {
   if (options.autosave) {
     persistCurrentAnnotation();
   }
   const nextIndex = Math.max(0, Math.min(index, data.length - 1));
   userSelect.value = String(nextIndex);
-  currentUser = data[nextIndex];
+  syncUserNav();
+  setSaveStatus("Loading user...", "");
+  currentUser = await loadUser(nextIndex);
   currentType = "type1";
   selectedSessionIndex = null;
-  syncUserNav();
   render();
 }
 
-function shiftUser(delta) {
-  selectUser(Number(userSelect.value) + delta, { autosave: true });
+async function shiftUser(delta) {
+  await selectUser(Number(userSelect.value) + delta, { autosave: true });
 }
 
 function syncUserNav() {

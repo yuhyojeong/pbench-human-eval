@@ -60,6 +60,9 @@
     border-left: 4px solid #2563eb;
     background: #f8fbff;
   }
+  .user-control-group select {
+    width: 120px;
+  }
   .query-control-group {
     border-left: 4px solid #7c3aed;
     background: #fbfaff;
@@ -124,7 +127,7 @@
   }
 
   .panel-evidence {
-    min-height: calc(100vh - 112px);
+    min-height: 0;
   }
   
   .panel-header {
